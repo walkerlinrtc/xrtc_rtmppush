@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<TLog>
+<!--日志文件夹路径 路径/hedgwlog/ 是日志文件所在位置-->
+<LogFileDir>/home/agora/vid_hemu_gw/tmp/</LogFileDir>
+<!--除日志文件夹路径之外 其它配置项支持热修改 不用重启服务 (注:删除配置并不会恢复默认值)-->
+<!--日志最低级别 从小到大debug middle info warn error 备注:配置middle info以上的级别会减少日志到大部分问题无法排查程度-->
+<LogLevel>debug</LogLevel>
+<!--单个日志文件最大大小(MB) 最小1MB 最大1GB-->
+<LogFileMaxSize>500</LogFileMaxSize>
+<!--日志文件有效天数 当天时间前推n*24小时 n为此配置项值 过期日志会被打包 最小为0-->
+<LogFileValidDays>2</LogFileValidDays>
+<!--日志文件夹总大小阈值(GB),超过了就删除旧文件,最小1GB-->
+<LogClearSize>80</LogClearSize>
+<!--网关测试状态 true/false 默认false 配置为true时网关不再向设备管理服务发送负载信息-->
+<IsTest>false</IsTest>
+<!--上报到设备管理服务的网关支持设备最大连接数 默认500 最大600 网关硬性限制直接拒绝设备接入上限为此值+100-->
+<MaxDevices>500</MaxDevices>
+</TLog>

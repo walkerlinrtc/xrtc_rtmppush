@@ -1,2 +1,5 @@
 #!/bin/bash
-g++ -o rtmp_client main.cpp RtmpClient.cpp -std=c++11
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)

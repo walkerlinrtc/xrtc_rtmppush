@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <map>
+#include "Vnsp_WriteLog.h"
 
 class RtmpClient {
 public:
