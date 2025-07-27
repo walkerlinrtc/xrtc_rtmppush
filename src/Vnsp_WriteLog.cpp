@@ -124,7 +124,7 @@ Vnsp_WriteLog::Vnsp_WriteLog()
     m_pMaxLogSize = MAX_LOG_FILE_SIZE;
     m_pLogDay = LOG_FILE_VALID_DAYS;
     m_pMaxLogDirSize = LOG_CLEAR_SIZE;
-    m_strLogName = "vnspserver"; // 设置保存的日志文件名称
+    m_strLogName = "xrtc_rtmppush"; // 设置保存的日志文件名称
     CMarkup xml;
     // 获取日志配置文件
     if (xml.Load("./logConfig.xml"))
@@ -192,8 +192,8 @@ Vnsp_WriteLog::Vnsp_WriteLog()
             m_pMaxLogDirSize *= 1024 * 1024 * 1024;
         }
     }
-    //  m_strDirPath= /xxx/xxx/vnspserver_log
-    m_strDirPath = m_strDirPath + "vnspserver_log";
+    //  m_strDirPath= /xxx/xxx/xrtc_log
+    m_strDirPath = m_strDirPath + "xrtc_log";
     // 创建日志目录的文件夹
     CreateLogFolder(m_strDirPath, 0);
     m_strLogPath = m_strDirPath + "/" + m_strLogName + ".log";
