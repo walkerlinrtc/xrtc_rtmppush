@@ -337,7 +337,7 @@ bool RtmpClient::parseAmf0Value(const std::vector<uint8_t>& data, size_t& pos, A
     uint8_t type = data[pos++];
 
     switch (type) {
-        case 0x00: // Number
+        case 0x00: {// Number
             if (pos + 8 > data.size()) return false;
             value.type = Amf0Value::NUMBER;
             value.number = 0;
@@ -345,12 +345,14 @@ bool RtmpClient::parseAmf0Value(const std::vector<uint8_t>& data, size_t& pos, A
                 value.number = (value.number << 8) | data[pos++];
             }
             return true;
-        case 0x01: // Boolean
+        }
+        case 0x01: {// Boolean
             if (pos >= data.size()) return false;
             value.type = Amf0Value::BOOLEAN;
             value.boolean = data[pos++] != 0;
             return true;
-        case 0x02: // String
+        }
+        case 0x02: {// String
             if (pos + 2 > data.size()) return false;
             value.type = Amf0Value::STRING;
             uint16_t len = (data[pos] << 8) | data[pos + 1];
@@ -359,7 +361,8 @@ bool RtmpClient::parseAmf0Value(const std::vector<uint8_t>& data, size_t& pos, A
             value.string = std::string(data.begin() + pos, data.begin() + pos + len);
             pos += len;
             return true;
-        case 0x03: // Object
+        }
+        case 0x03: {// Object
             value.type = Amf0Value::OBJECT;
             while (pos + 3 <= data.size()) {
                 uint16_t keyLen = (data[pos] << 8) | data[pos + 1];
@@ -376,10 +379,12 @@ bool RtmpClient::parseAmf0Value(const std::vector<uint8_t>& data, size_t& pos, A
                 value.object[key] = subValue;
             }
             return true;
-        case 0x05: // Null
+        }
+        case 0x05: {// Null
             value.type = Amf0Value::NULL_TYPE;
             return true;
-        case 0x08: // Array
+        }
+        case 0x08: {// Array
             if (pos + 4 > data.size()) return false;
             value.type = Amf0Value::ARRAY;
             uint32_t arrayLen = (data[pos] << 24) | (data[pos + 1] << 16) | (data[pos + 2] << 8) | data[pos + 3];
@@ -390,6 +395,7 @@ bool RtmpClient::parseAmf0Value(const std::vector<uint8_t>& data, size_t& pos, A
                 value.array.push_back(subValue);
             }
             return true;
+        }
         default:
             std::cerr << "Unsupported AMF0 type: " << (int)type << std::endl;
             return false;

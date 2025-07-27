@@ -42,7 +42,7 @@ private:
     struct Amf0Value {
         enum Type { NUMBER, BOOLEAN, STRING, OBJECT, NULL_TYPE, ARRAY };
         Type type;
-        double number;
+        int64_t number;
         bool boolean;
         std::string string;
         std::map<std::string, Amf0Value> object;
