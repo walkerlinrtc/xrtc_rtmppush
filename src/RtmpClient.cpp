@@ -21,7 +21,7 @@ bool RtmpClient::connect() {
     // 创建 TCP 套接字
     socket_ = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_ < 0) {
-        std::cerr << "Failed to create socket: " << strerror(errno) << std::endl;
+        VNSP_LOG(LOG_ERROR, "connect", "Failed to create socket: %s", strerror(errno));
         return false;
     }
 
@@ -36,7 +36,7 @@ bool RtmpClient::connect() {
     inet_pton(AF_INET, server_.c_str(), &serverAddr.sin_addr);
 
     if (::connect(socket_, (sockaddr*)&serverAddr, sizeof(serverAddr)) < 0 && errno != EINPROGRESS) {
-        std::cerr << "Connect failed: " << strerror(errno) << std::endl;
+        VNSP_LOG(LOG_ERROR, "connect", "Failed to connect to server %s:%d: %s", server_.c_str(), port_, strerror(errno));
         close();
         return false;
     }
@@ -47,14 +47,14 @@ bool RtmpClient::connect() {
     FD_SET(socket_, &writeFds);
     struct timeval tv = {5, 0}; // 5 秒超时
     if (select(socket_ + 1, nullptr, &writeFds, nullptr, &tv) <= 0) {
-        std::cerr << "Connect timeout or error" << std::endl;
+        VNSP_LOG(LOG_ERROR, "connect", "Connect timeout or error");
         close();
         return false;
     }
 
     // 执行 RTMP 握手
     if (!handshake()) {
-        std::cerr << "Handshake failed" << std::endl;
+        VNSP_LOG(LOG_ERROR, "connect", "Handshake failed");
         close();
         return false;
     }
@@ -85,15 +85,15 @@ bool RtmpClient::connect() {
 
 bool RtmpClient::reconnect() {
     close();
-    std::cerr << "Attempting to reconnect..." << std::endl;
+    VNSP_LOG(LOG_INFO, "reconnect", "Attempting to reconnect to %s:%d", server_.c_str(), port_);
     for (int i = 0; i < 3; ++i) {
         if (connect()) {
-            std::cerr << "Reconnect successful" << std::endl;
+            VNSP_LOG(LOG_INFO, "reconnect", "Reconnected successfully");
             return true;
         }
         std::this_thread::sleep_for(std::chrono::seconds(2));
     }
-    std::cerr << "Reconnect failed after 3 attempts" << std::endl;
+    VNSP_LOG(LOG_ERROR, "reconnect", "Failed to reconnect after 3 attempts");
     return false;
 }
 
@@ -115,7 +115,7 @@ bool RtmpClient::handshake() {
     std::vector<uint8_t> s0s1(1537);
     if (!receivePacket(s0s1, 1537)) return false;
     if (s0s1[0] != 0x03) {
-        std::cerr << "Invalid S0 version" << std::endl;
+        VNSP_LOG(LOG_ERROR, "handshake", "Invalid S0 version: %d", s0s1[0]);
         return false;
     }
 
@@ -140,7 +140,7 @@ bool RtmpClient::sendConnect() {
     if (result.array.size() >= 2 && result.array[0].string == "_result" && result.array[1].number == 1.0) {
         return true;
     }
-    std::cerr << "Connect response invalid" << std::endl;
+    VNSP_LOG(LOG_ERROR, "sendConnect", "Connect response invalid");
     return false;
 }
 
@@ -156,7 +156,7 @@ bool RtmpClient::sendCreateStream() {
         streamId_ = static_cast<uint32_t>(result.array[3].number);
         return true;
     }
-    std::cerr << "CreateStream response invalid" << std::endl;
+    VNSP_LOG(LOG_ERROR, "sendCreateStream", "CreateStream response invalid");
     return false;
 }
 
@@ -173,10 +173,10 @@ bool RtmpClient::sendPublish() {
         if (code == "NetStream.Publish.Start") {
             return true;
         }
-        std::cerr << "Publish failed: " << code << std::endl;
+        VNSP_LOG(LOG_ERROR, "sendPublish", "Publish failed: %s", code.c_str());
         return false;
     }
-    std::cerr << "Publish response invalid" << std::endl;
+    VNSP_LOG(LOG_ERROR, "sendPublish", "Publish response invalid");
     return false;
 }
 
@@ -201,7 +201,7 @@ bool RtmpClient::sendPacket(const std::vector<uint8_t>& packet, int retryCount) 
             ssize_t n = send(socket_, packet.data() + sent, packet.size() - sent, 0);
             if (n <= 0) {
                 if (n == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
-                    std::cerr << "Send failed: " << strerror(errno) << std::endl;
+                    VNSP_LOG(LOG_ERROR, "sendPacket", "Send failed: %s", strerror(errno));
                     if (reconnect()) {
                         return sendPacket(packet, retryCount - i - 1);
                     }
@@ -214,7 +214,7 @@ bool RtmpClient::sendPacket(const std::vector<uint8_t>& packet, int retryCount) 
         }
         return true;
     }
-    std::cerr << "Send failed after " << retryCount << " retries" << std::endl;
+    VNSP_LOG(LOG_ERROR, "sendPacket", "Send failed after %d retries", retryCount);
     return false;
 }
 
@@ -225,7 +225,7 @@ bool RtmpClient::receivePacket(std::vector<uint8_t>& buffer, size_t size, int re
             ssize_t n = recv(socket_, buffer.data() + received, size - received, 0);
             if (n <= 0) {
                 if (n == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
-                    std::cerr << "Recv failed: " << strerror(errno) << std::endl;
+                    VNSP_LOG(LOG_ERROR, "receivePacket", "Receive failed: %s", strerror(errno));
                     if (reconnect()) {
                         return receivePacket(buffer, size, retryCount - i - 1);
                     }
@@ -238,7 +238,8 @@ bool RtmpClient::receivePacket(std::vector<uint8_t>& buffer, size_t size, int re
         }
         return true;
     }
-    std::cerr << "Receive failed after " << retryCount << " retries" << std::endl;
+
+    VNSP_LOG(LOG_ERROR, "receivePacket", "Receive failed after %d retries", retryCount);
     return false;
 }
 
@@ -397,7 +398,7 @@ bool RtmpClient::parseAmf0Value(const std::vector<uint8_t>& data, size_t& pos, A
             return true;
         }
         default:
-            std::cerr << "Unsupported AMF0 type: " << (int)type << std::endl;
+            VNSP_LOG(LOG_ERROR, "parseAmf0Value", "Unsupported AMF0 type: %d", type);
             return false;
     }
 }
@@ -454,7 +455,7 @@ bool RtmpClient::sendChunkedData(const std::vector<uint8_t>& data, uint32_t time
 bool RtmpClient::readAndSendFlv(const std::string& filePath) {
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "Failed to open FLV file: " << filePath << std::endl;
+        VNSP_LOG(LOG_ERROR, "readAndSendFlv", "Failed to open FLV file: %s", filePath.c_str());
         return false;
     }
 
@@ -466,7 +467,7 @@ bool RtmpClient::readAndSendFlv(const std::string& filePath) {
         char header[9];
         file.read(header, 9);
         if (!file || std::string(header, 3) != "FLV") {
-            std::cerr << "Invalid FLV file" << std::endl;
+            VNSP_LOG(LOG_ERROR, "readAndSendFlv", "Invalid FLV file: %s", filePath.c_str());
             return false;
         }
         fileOffset_ = 9;
